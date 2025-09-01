@@ -1,6 +1,17 @@
 import torch
 import torch.nn as nn
+from torch.nn.functional import relu, mse_loss
+from dataclasses import dataclass
+import matplotlib
+matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
+import os
+import subprocess
 
+
+###
+### DATASET GENERATION
+###
 
 class Gaussian:
     def __init__(self, mu, sigma):
@@ -17,6 +28,10 @@ class Gaussian:
 
     def get_score(self, x: torch.Tensor) -> torch.Tensor:
         return -(x - self.mu) / (self.sigma * self.sigma)
+
+    def sample(self, n: int) -> torch.Tensor:
+        return self.mu + self.sigma * torch.randn(n, dtype=torch.float64)
+
 
 
 class GaussianMixture:
@@ -38,17 +53,79 @@ class GaussianMixture:
         denominator = p1 + p2
         return numerator / denominator
 
+    def sample(self, n: int) -> torch.Tensor:
+        z = torch.bernoulli(torch.full((n,), self.w, dtype=torch.float64))
+        x1 = self.g1.sample(n)
+        x2 = self.g2.sample(n)
+        return z * x1 + (1 - z) * x2
+
+
+###
+### TRAINING CODE
+###
 
 class ScoreFnNet(nn.Module):
+    """Learns to predict the score of the distribution"""
     def __init__(self):
         super().__init__()
+        self.layer1 = nn.Linear(1, 128)
+        self.layer2 = nn.Linear(128, 128)
+        self.layer3 = nn.Linear(128, 1, bias=False)
 
-    def 
+        nn.init.normal_(self.layer1.weight, std=0.02)
+        nn.init.normal_(self.layer2.weight, std=0.02)
+        nn.init.normal_(self.layer3.weight, std=0.02)
+
+    def forward(self, x):
+        # TODO - should also be conditioned on time but not for this simple example
+        x = relu(self.layer1(x))
+        x = relu(self.layer2(x))
+        x = self.layer3(x)
+        return x
+
+@dataclass
+class Config:
+    lr = 1e-4
+    n = 30_000
 
 
-def langevin_step(current_x: torch.Tensor, step_size: float, gm: GaussianMixture) -> torch.Tensor:
+def train_score_matching():
+    cfg = Config()
+    model = ScoreFnNet()
+    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
+    gm = GaussianMixture(0.0, 3.0, 1.0, 1.0, 0.5)
+    losses = []
+    for i in range(cfg.n):
+        x = gm.sample(n=1).to(torch.float32)
+        target = gm.get_score(x).to(torch.float32)
+        model.zero_grad(set_to_none=True)
+        output = model(x)
+        loss = mse_loss(output, target)
+        losses.append(loss.item())
+        loss.backward()
+        optimizer.step()
+
+    plt.plot(losses)
+    os.makedirs("outputs", exist_ok=True)
+    linux_path = os.path.abspath("outputs/losses.png")
+    plt.savefig(linux_path)
+    win_path = subprocess.check_output(["wslpath", "-w", linux_path]).decode().strip()
+    subprocess.run(["cmd.exe", "/c", "start", "", win_path])
+    plt.close()
+
+
+def train_ddpm():
+    pass
+
+
+###
+### INFERENCE CODE
+###
+
+
+def langevin_step(current_x: torch.Tensor, step_size: float, gm: GaussianMixture, model) -> torch.Tensor:
     noise = torch.randn((), dtype=torch.float64)
-    return current_x + 0.5 * step_size * gm.get_score(current_x) + torch.sqrt(torch.tensor(step_size, dtype=torch.float64)) * noise
+    return current_x + 0.5 * step_size * model(current_x) + torch.sqrt(torch.tensor(step_size, dtype=torch.float64)) * noise
 
 
 def run_langevin_sampling(n_steps: int, initial_x: float, step_size: float, gm: GaussianMixture) -> torch.Tensor:
@@ -62,6 +139,4 @@ def run_langevin_sampling(n_steps: int, initial_x: float, step_size: float, gm: 
 
 
 if __name__ == "__main__":
-    gm = GaussianMixture(0.0, 3.0, 1.0, 1.0, 0.5)
-    samples = run_langevin_sampling(100000, 0.5, 0.01, gm)
-    torch.save(samples, "outputs/samples.pt")
+    train()
