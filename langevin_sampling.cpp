@@ -74,7 +74,7 @@ int main() {
     GaussianMixture gm{Gaussian{0.0, 1.0}, Gaussian{3.0, 1.0}, 0.5};
     auto samples = run_langevin_sampling(100000, 0.5, 0.01, gm);
 
-    std::ofstream out("samples.csv");
+    std::ofstream out("outputs/samples.csv");
     for (double s : samples) {
         out << s << "\n";
     }
