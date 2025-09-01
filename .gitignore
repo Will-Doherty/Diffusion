@@ -2,4 +2,3 @@
 *.csv
 *.exe
 .venv/
-*.txt
