@@ -7,6 +7,7 @@ matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 import os
 import subprocess
+from tqdm import tqdm
 
 
 ###
@@ -95,7 +96,7 @@ def train_score_matching():
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     gm = GaussianMixture(0.0, 3.0, 1.0, 1.0, 0.5)
     losses = []
-    for i in range(cfg.n):
+    for i in tqdm(range(cfg.n)):
         x = gm.sample(n=1).to(torch.float32)
         target = gm.get_score(x).to(torch.float32)
         model.zero_grad(set_to_none=True)
@@ -110,12 +111,11 @@ def train_score_matching():
     linux_path = os.path.abspath("outputs/losses.png")
     plt.savefig(linux_path)
     win_path = subprocess.check_output(["wslpath", "-w", linux_path]).decode().strip()
-    subprocess.run(["cmd.exe", "/c", "start", "", win_path])
+    subprocess.run(
+        ["powershell.exe", "-NoLogo", "-NoProfile", "-Command", f"Start-Process -FilePath '{win_path}'"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
     plt.close()
-
-
-def train_ddpm():
-    pass
 
 
 ###
@@ -139,4 +139,4 @@ def run_langevin_sampling(n_steps: int, initial_x: float, step_size: float, gm: 
 
 
 if __name__ == "__main__":
-    train()
+    train_score_matching()
