@@ -1,3 +1,10 @@
+= Code structure
+
+- _langevin_sampling_gm.py_: Demonstrates Langevin sampling from a Gaussian mixture distribution with known score.
+- _score_matching_gm.py_: The score function of a Gaussian mixture is learned by a simple MLP. In this case, we have access to the ground-truth score during training. We then sample from the trained model using Langevin sampling.
+- _sliced_score_matching_gm.py_: Demonstrates Langevin sampling from a distribution with score learned by a simple MLP. In this case, we have access to the ground truth score during training.
+
+
 = Sliced Score Matching
 
 The score matching objective is

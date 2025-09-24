@@ -120,3 +120,4 @@ def run_langevin_sampling(n_steps: int, initial_x: float, step_size: float, gm: 
 if __name__ == "__main__":
     trained_model = train_score_matching()
     run_langevin_sampling()
+

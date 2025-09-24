@@ -9,11 +9,10 @@ import matplotlib.pyplot as plt
 import os
 import subprocess
 from tqdm import tqdm
+from einops import einsum
 
 
-###
-### DATASET 
-###
+# --- DATASET ---
 
 transform = transforms.Compose([
     transforms.ToTensor(),
@@ -46,9 +45,8 @@ test_loader = torch.utils.data.DataLoader(
     shuffle=False
 )
 
-###
-### MODEL DEFINITION
-###
+
+# --- MODEL DEFINITION ---
 
 class DoubleConv(nn.Module):
     def __init__(self, in_c, out_c):
@@ -88,13 +86,30 @@ class UNet(nn.Module):
         return self.out(x)
 
 
+# --- TRAINING CODE ---
 
-###
-### TRAINING CODE
-###
+def sliced_score_matching(score_est):
+    assert score_est.dim() == 4, "Tensor must be of shape (B, C, X, Y)"
 
-def sliced_score_matching():
-    pass
+    batch_size = score_est.shape[0]
+    # n_channels = x.shape[1]
+    n_channels = 3
+    dim1 = score_est.shape[2]
+    dim2 = score_est.shape[3]
+
+    v = torch.randn_like(score_est)
+    # normalize across all pixel values but have a separate normalization factor for each channel
+    normalization_factor = torch.linalg.vector_norm(v, dim=(2, 3)).repeat(batch_size, n_channels, dim1, dim2)
+    v = v / normalization_factor
+
+    # now we need the hessian
+    hessian = 
+    
+    term1 = v.T * hessian * v
+    term2 = 0.5 * (v.T * score_est) ** 2
+    
+    loss = (term1 + term2).mean()
+    return loss
 
 @dataclass
 class Config:
@@ -103,17 +118,18 @@ class Config:
 
 def train_score_matching():
     cfg = Config()
-    model = ScoreFnNet()
+    model = UNet()
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     losses = []
-    # for i, val in tqdm(enumerate(train_loader)):
-    #     target = gm.get_score(x).to(torch.float32)
-    #     model.zero_grad(set_to_none=True)
-    #     output = model(x)
-    #     loss = mse_loss(output, target)
-    #     losses.append(loss.item())
-    #     loss.backward()
-    #     optimizer.step()
+    # for i, image_class_pair in tqdm(enumerate(train_loader)):
+    for i, image_class_pair in enumerate(train_loader):
+        x = image_class_pair[0]
+        model.zero_grad(set_to_none=True)
+        output = model(x)
+        loss = sliced_score_matching(output)
+        losses.append(loss)
+        loss.backward()
+        optimizer.step()
 
     # plt.plot(losses)
     # os.makedirs("outputs", exist_ok=True)
@@ -127,13 +143,10 @@ def train_score_matching():
     # plt.close()
 
 
-###
-### INFERENCE CODE
-###
-
+# --- INFERENCE CODE ---
 
 def annealed_langevin_step(current_x: torch.Tensor, step_size: float) -> torch.Tensor:
-    # TODO - parameterize this function and the one below with time?
+    # TODO - parameterize this function and the one below with time
     noise = torch.randn((), dtype=torch.float64)
     return current_x + 0.5 * step_size * model(current_x) + torch.sqrt(torch.tensor(step_size, dtype=torch.float64)) * noise
 
@@ -149,5 +162,4 @@ def run_annealed_langevin_sampling(n_steps: int, initial_x: float, step_size: fl
 
 
 if __name__ == "__main__":
-    pass
-    # train_score_matching()
+    train_score_matching()

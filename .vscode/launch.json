@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: File (uv)",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/naive_score_matching_mnist.py",
+      "console": "integratedTerminal",
+      "python": "${workspaceFolder}/.venv/bin/python"
+    }
+  ]
+}
