@@ -6,8 +6,6 @@ from dataclasses import dataclass
 import matplotlib
 matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
-import os
-import subprocess
 from tqdm import tqdm
 import argparse
 from pathlib import Path
@@ -65,6 +63,7 @@ class GaussianMixture:
 # --- TRAINING CODE ---
 
 def calculate_sm_objective(model, x):
+    # TODO: add batching
     x = x.squeeze(0)
     def scalar_fn(inp):
         return model(inp).sum()
@@ -74,21 +73,19 @@ def calculate_sm_objective(model, x):
     )
     return loss
 
-# def sliced_score_matching(score_est):
-#     v = torch.randn_like(score_est)
-    
-#     # normalize across all pixel values but have a separate normalization factor for each channel
-#     normalization_factor = torch.linalg.vector_norm(v, dim=(2, 3)).repeat(batch_size, n_channels, dim1, dim2)
-#     v = v / normalization_factor
+def calculate_sliced_sm_objective(model, x):
+    # TODO: add batching
+    x = x.squeeze(0).requires_grad_()
 
-#     # now we need the hessian
-#     hessian = 
+    def scalar_fn(inp):
+        return model(inp).sum()
     
-#     term1 = v.T * hessian * v
-#     term2 = 0.5 * (v.T * score_est) ** 2
-    
-#     loss = (term1 + term2).mean()
-#     return loss
+    v = torch.randn_like(x)
+    Hv = torch.autograd.functional.hvp(scalar_fn, x, v)[1]
+    first_summand = v @ Hv
+    second_summand = 0.5 * (v @ torch.autograd.grad(model(x), x)[0]).pow(2)
+    loss = first_summand + second_summand
+    return loss
 
 class ScoreFnNet(nn.Module):
     def __init__(self):
@@ -111,7 +108,8 @@ class ScoreFnNet(nn.Module):
 @dataclass
 class TrainingConfig:
     lr = 1e-4
-    n = 1_000
+    n = 100
+    use_sliced_sm: bool = True
 
 @dataclass
 class InferenceConfig:
@@ -128,7 +126,11 @@ def train_score_matching(cfg: TrainingConfig):
     for i in range(cfg.n):
         x = gm.sample(n=1).to(torch.float32)
         model.zero_grad(set_to_none=True)
-        loss = calculate_sm_objective(model, x)
+        if cfg.use_sliced_sm:
+            loss = calculate_sliced_sm_objective(model, x)
+            break
+        else:
+            loss = calculate_sm_objective(model, x)
         losses.append(loss.item())
         loss.backward()
         optimizer.step()
@@ -139,17 +141,17 @@ def train_score_matching(cfg: TrainingConfig):
 
 # --- INFERENCE CODE ---
 
-def langevin_step(current_x: torch.Tensor, step_size: float, gm: GaussianMixture, model) -> torch.Tensor:
-    noise = torch.randn((), dtype=torch.float64)
+def langevin_step(current_x: torch.Tensor, step_size: float, model) -> torch.Tensor:
+    noise = torch.randn((), dtype=torch.float32)
     return current_x + 0.5 * step_size * model(current_x) + torch.sqrt(torch.tensor(step_size, dtype=torch.float64)) * noise
 
-def run_langevin_sampling(cfg: InferenceConfig) -> torch.Tensor:
+def run_langevin_sampling(cfg: InferenceConfig, model) -> torch.Tensor:
     n_steps, initial_x, step_size = cfg.n_steps, cfg.initial_x, cfg.step_size
-    samples = torch.zeros(n_steps, dtype=torch.float64)
-    current_x = torch.tensor(initial_x, dtype=torch.float64)
+    samples = torch.zeros((n_steps, 2), dtype=torch.float32)
+    current_x = torch.tensor(initial_x, dtype=torch.float32)
     samples[0] = current_x
     for i in range(1, n_steps):
-        current_x = langevin_step(current_x, step_size, gm)
+        current_x = langevin_step(current_x, step_size, model)
         samples[i] = current_x
     return samples
 
@@ -165,14 +167,12 @@ if __name__ == "__main__":
     if args.inference_only:
         if not weight_path.exists():
             raise FileNotFoundError("Existing weight path not found. You might need to train the model first!")
-        trained_model = torch.load(weight_path)
+        model = ScoreFnNet().load_state_dict(weight_path) 
     else:
         training_cfg = TrainingConfig()
-        trained_model = train_score_matching(training_cfg)
+        model = train_score_matching(training_cfg)
         weight_directory.mkdir(exist_ok=True)
-        torch.save(trained_model, weight_path)
+        torch.save(model.state_dict(), weight_path)
 
     inference_cfg = InferenceConfig()
-    inference_samples = run_langevin_sampling(inference_cfg)
-    
-
+    inference_samples = run_langevin_sampling(inference_cfg, model)

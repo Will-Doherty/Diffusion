@@ -21,6 +21,12 @@ torchvision = [
     { index = "pytorch-cpu" },
 ]
 
+[tool.basedpyright]
+typeCheckingMode = "basic"
+reportMissingTypeStubs = "warning"
+reportMissingImports = "none"
+reportMissingModuleSource = "none"
+
 [[tool.uv.index]]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
