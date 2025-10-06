@@ -1,10 +1,10 @@
 from diffusion.sliced_score_matching_gm import ScoreFnNet
-from diffusion.config import SetupConfig, TrainingConfig
+from diffusion.config import SetupConfigGM, TrainingConfigGM
 
 import torch
 
-setup_cfg = SetupConfig()
-training_cfg = TrainingConfig()
+setup_cfg = SetupConfigGM()
+training_cfg = TrainingConfigGM()
  
 def compare_gradients():
     if not setup_cfg.weight_path.exists():
