@@ -1,12 +1,11 @@
 import torch
 import matplotlib
 matplotlib.use("TkAgg")
-import matplotlib.pyplot as plt
 import argparse
 
 from diffusion.config import TrainingConfigMNIST, InferenceConfigMNIST, SetupConfigMNIST
 from diffusion.models import UNet
-from diffusion.losses import calculate_sm_objective_mnist
+from diffusion.losses import calculate_sliced_sm_objective_mnist
 from diffusion.inference import run_langevin_sampling
 from diffusion.plotting import plot_mnist_sampling_result
 
@@ -20,17 +19,12 @@ def train_mnist_score_matching(cfg: TrainingConfigMNIST):
     losses = []
     print("Training...")
     for i, (x, _) in enumerate(loader):
-        print(x.shape)
         model.zero_grad(set_to_none=True)
-        if cfg.use_sliced_sm:
-            continue  # temporary
-            # loss = calculate_sliced_sm_objective(model, x)
-        else:
-            loss = calculate_sm_objective_mnist(model, x)
+        loss = calculate_sliced_sm_objective_mnist(model, x)
         losses.append(loss.item())
         loss.backward()
         optimizer.step()
-        print(f"step {i}, loss: {sum(losses[-100:]) / 100:.6f}")
+        print(f"step {i}, loss: {sum(losses[-100:]) / 100}")
         if i % 100 == 0 and i > 0:
             break
     return model
@@ -54,5 +48,4 @@ if __name__ == "__main__":
         torch.save(model.state_dict(), setup_cfg.weight_path)
 
     inference_samples = run_langevin_sampling(inference_cfg, model)
-    gm = training_cfg.gm
-    plot_mnist_sampling_result(inference_samples, gm)
+    plot_mnist_sampling_result(inference_samples)
