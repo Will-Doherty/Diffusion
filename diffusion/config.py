@@ -3,24 +3,17 @@ from pathlib import Path
 
 from diffusion.datasets import MNIST
 
-# -- MNIST config -- 
-
-@dataclass
-class TrainingConfigMNIST:
-    lr = 1e-4
-    num_epochs = 1
-    num_batches = 5
-    mnist = MNIST()
-    sigmas = [1.0]
+def geometric_sigmas(num_levels: int = 20, sigma_max: float = 1.0, sigma_min: float = 0.01) -> list[float]:
+    ratio = sigma_min / sigma_max
+    return [sigma_max * (ratio ** (i / (num_levels - 1))) for i in range(num_levels)]
 
 @dataclass
 class TrainingConfigAnnealedMNIST:
-    lr = 1e-4
+    lr = 1e-6
     num_epochs = 1
     num_batches = 5
     mnist = MNIST()
-    sigmas = [1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125]
-
+    sigmas = geometric_sigmas()
 
 @dataclass
 class SetupConfigMNIST:

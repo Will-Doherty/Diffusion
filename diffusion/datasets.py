@@ -11,15 +11,11 @@ class MNIST:
         download: bool = True,
         shuffle_train: bool = True,
         shuffle_test: bool = False,
-        transform: transforms.Compose | None = None,
     ):
-        if transform is None:
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Lambda(self.add_uniform_noise),
-                transforms.Lambda(self.logit_transform),
-                transforms.Normalize((0.1307,), (0.3081,)),
-            ])
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,)),
+        ])
         self.train_dataset = datasets.MNIST(
             root=root, train=True, download=download, transform=transform
         )
@@ -41,12 +37,3 @@ class MNIST:
             num_workers=num_workers,
             pin_memory=True,
         )
-
-    def add_uniform_noise(self, img, noise_range=(-1/512, 1/512), clip_range=(-0.001, 0.001)):
-        noise = torch.rand_like(img) * (noise_range[1] - noise_range[0]) + noise_range[0]
-        noise = torch.clamp(noise, clip_range[0], clip_range[1])
-        return img + noise
-
-    def logit_transform(self, img, alpha=1e-6):
-        img = img * (1 - 2 * alpha) + alpha
-        return torch.log(img / (1 - img))

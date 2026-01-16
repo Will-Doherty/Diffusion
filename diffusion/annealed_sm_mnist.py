@@ -26,8 +26,9 @@ def train_annealed_mnist_score_matching(cfg: TrainingConfigAnnealedMNIST):
             loss.backward()
             optimizer.step()
             print(f"step {i}, loss: {sum(losses[-100:]) / 100}")
-            if i % 100 == 0 and i > 0:
-                break
+            # if i % 1000 == 0 and i > 0:
+             #   break
+        break
     return model
 
 parser = argparse.ArgumentParser()
@@ -48,5 +49,5 @@ if __name__ == "__main__":
         setup_cfg.weight_directory.mkdir(exist_ok=True)
         torch.save(model.state_dict(), setup_cfg.weight_path)
 
-    inference_samples = run_annealed_langevin_sampling(inference_cfg, model)
-    plot_mnist_sampling_result(inference_samples)
+#    inference_samples = run_annealed_langevin_sampling(inference_cfg, model)
+#    plot_mnist_sampling_result(inference_samples)
