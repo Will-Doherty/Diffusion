@@ -1,3 +1,4 @@
+import random
 import torch
 import matplotlib
 matplotlib.use("TkAgg")
@@ -18,17 +19,18 @@ def train_annealed_mnist_score_matching(cfg: TrainingConfigAnnealedMNIST):
     loader = dset.train_loader
     losses = []
     print("Training...")
-    for sigma in cfg.sigmas:
-        for i, (x, _) in enumerate(loader):
-            model.zero_grad(set_to_none=True)
-            loss = calculate_annealed_sm_objective_mnist(model, x, sigma)
-            losses.append(loss.item())
-            loss.backward()
-            optimizer.step()
-            print(f"step {i}, loss: {sum(losses[-100:]) / 100}")
-            # if i % 1000 == 0 and i > 0:
-             #   break
-        break
+    for i, (x, _) in enumerate(loader):
+        sigma = random.choice(cfg.sigmas)
+        model.zero_grad(set_to_none=True)
+        loss = calculate_annealed_sm_objective_mnist(model, x, sigma)
+        losses.append(loss.item())
+        loss.backward()
+        optimizer.step()
+        window = min(100, len(losses))
+        if i % 10 == 0 and i > 0:
+            print(f"step {i}, loss: {sum(losses[-window:]) / window}")
+        # if i % 1000 == 0 and i > 0:
+         #   break
     return model
 
 parser = argparse.ArgumentParser()
