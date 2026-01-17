@@ -6,7 +6,7 @@ class MNIST:
     def __init__(
         self,
         root: str = "data",
-        batch_size: int = 2,
+        batch_size: int = 512,
         num_workers: int = 2,
         download: bool = True,
         shuffle_train: bool = True,

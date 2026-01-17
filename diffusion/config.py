@@ -11,12 +11,10 @@ def geometric_sigmas(num_levels: int = 20, sigma_max: float = 1.0, sigma_min: fl
 class TrainingConfigAnnealedMNIST:
     lr = 1e-6
     num_epochs = 5
-    num_batches = None
-    batch_size = 512
     val_split = 0.1
-    early_stopping_patience = 3
+    early_stopping_patience = 1
     early_stopping_min_delta = 0.0
-    mnist = MNIST(batch_size=batch_size, val_split=val_split)
+    mnist = MNIST(val_split=val_split)
     sigmas = geometric_sigmas()
 
 @dataclass

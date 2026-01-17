@@ -1,9 +1,6 @@
 import torch
 import torch.nn as nn
 
-
-# -- U-NET --
-
 class DoubleConv(nn.Module):
     def __init__(self, in_c, out_c):
         super().__init__()

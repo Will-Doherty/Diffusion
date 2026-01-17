@@ -28,8 +28,6 @@ def train_annealed_mnist_score_matching(cfg: TrainingConfigAnnealedMNIST):
     print("Training...")
     for i in range(cfg.num_epochs):
         for j, (x, _) in enumerate(loader):
-            if cfg.num_batches is not None and j >= cfg.num_batches:
-                break
             x = x.to(device)
             sigma = random.choice(cfg.sigmas)
             model.zero_grad(set_to_none=True)
@@ -87,4 +85,3 @@ if __name__ == "__main__":
 
     inference_samples = run_annealed_langevin_sampling(inference_cfg, model)
     save_mnist_samples_to_dir(inference_samples, setup_cfg.sample_directory)
-    plot_mnist_sampling_result(inference_samples)
