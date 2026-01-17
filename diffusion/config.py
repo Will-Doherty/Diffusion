@@ -9,8 +9,8 @@ def geometric_sigmas(num_levels: int = 20, sigma_max: float = 1.0, sigma_min: fl
 
 @dataclass
 class TrainingConfigAnnealedMNIST:
-    lr = 1e-6
-    num_epochs = 5
+    lr = 1e-4
+    num_epochs = 3
     val_split = 0.1
     early_stopping_patience = 1
     early_stopping_min_delta = 0.0

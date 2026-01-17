@@ -14,6 +14,7 @@ setup_cfg = SetupConfigMNIST()
 
 def train_annealed_mnist_score_matching(cfg: TrainingConfigAnnealedMNIST):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"device = {device}")
     model = UNet().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     dset = cfg.mnist
