@@ -1,3 +1,4 @@
+import copy
 import random
 import torch
 import matplotlib
@@ -13,24 +14,55 @@ from diffusion.plotting import plot_mnist_sampling_result
 setup_cfg = SetupConfigMNIST()
 
 def train_annealed_mnist_score_matching(cfg: TrainingConfigAnnealedMNIST):
-    model = UNet()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = UNet().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     dset = cfg.mnist
     loader = dset.train_loader
+    val_loader = dset.val_loader
     losses = []
+    best_val = float("inf")
+    best_state = None
+    patience_left = cfg.early_stopping_patience
     print("Training...")
-    for i, (x, _) in enumerate(loader):
-        sigma = random.choice(cfg.sigmas)
-        model.zero_grad(set_to_none=True)
-        loss = calculate_annealed_sm_objective_mnist(model, x, sigma)
-        losses.append(loss.item())
-        loss.backward()
-        optimizer.step()
-        window = min(100, len(losses))
-        if i % 10 == 0 and i > 0:
-            print(f"step {i}, loss: {sum(losses[-window:]) / window}")
-        # if i % 1000 == 0 and i > 0:
-         #   break
+    for i in range(cfg.num_epochs):
+        for j, (x, _) in enumerate(loader):
+            if cfg.num_batches is not None and j >= cfg.num_batches:
+                break
+            x = x.to(device)
+            sigma = random.choice(cfg.sigmas)
+            model.zero_grad(set_to_none=True)
+            loss = calculate_annealed_sm_objective_mnist(model, x, sigma)
+            losses.append(loss.item())
+            loss.backward()
+            optimizer.step()
+            window = min(10, len(losses))
+            if j % 10 == 0 and j > 0:
+                print(f"epoch {i}, step {j}, loss: {sum(losses[-window:]) / window}")
+
+        model.eval()
+        val_losses = []
+        for x, _ in val_loader:
+            x = x.to(device)
+            sigma = random.choice(cfg.sigmas)
+            val_loss = calculate_annealed_sm_objective_mnist(model, x, sigma)
+            val_losses.append(val_loss.item())
+        avg_val = sum(val_losses) / max(1, len(val_losses))
+        print(f"epoch {i}, val_loss: {avg_val}")
+
+        if avg_val < best_val - cfg.early_stopping_min_delta:
+            best_val = avg_val
+            best_state = copy.deepcopy(model.state_dict())
+            patience_left = cfg.early_stopping_patience
+        else:
+            patience_left -= 1
+            if patience_left <= 0:
+                print("Early stopping triggered.")
+                break
+        model.train()
+
+    if best_state is not None:
+        model.load_state_dict(best_state)
     return model
 
 parser = argparse.ArgumentParser()
@@ -41,11 +73,12 @@ training_cfg = TrainingConfigAnnealedMNIST()
 inference_cfg = InferenceConfigMNIST()
 
 if __name__ == "__main__":
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     if args.inference_only:
         if not setup_cfg.weight_path.exists():
             raise FileNotFoundError("Existing weight path not found. You might need to train the model first!")
-        model = UNet()
-        model.load_state_dict(torch.load(setup_cfg.weight_path))
+        model = UNet().to(device)
+        model.load_state_dict(torch.load(setup_cfg.weight_path, map_location=device))
     else:
         model = train_annealed_mnist_score_matching(training_cfg)
         setup_cfg.weight_directory.mkdir(exist_ok=True)
