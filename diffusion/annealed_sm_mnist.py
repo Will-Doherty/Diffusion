@@ -11,7 +11,6 @@ from diffusion.config import TrainingConfigAnnealedMNIST, InferenceConfigMNIST, 
 from diffusion.models import UNet
 from diffusion.losses import calculate_annealed_sm_objective_mnist
 from diffusion.inference import run_annealed_langevin_sampling, save_mnist_samples_to_dir
-from diffusion.plotting import plot_mnist_sampling_result
 
 setup_cfg = SetupConfigMNIST()
 

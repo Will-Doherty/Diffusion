@@ -10,7 +10,7 @@ def geometric_sigmas(num_levels: int = 20, sigma_max: float = 1.0, sigma_min: fl
 @dataclass
 class TrainingConfigAnnealedMNIST:
     lr = 1e-6
-    num_epochs = 10
+    num_epochs = 5
     num_batches = None
     batch_size = 512
     val_split = 0.1
