@@ -14,11 +14,13 @@ def annealed_langevin_step(current_x: torch.Tensor, step_size: float, sigma: flo
 
 
 def run_annealed_langevin_sampling(cfg, model) -> torch.Tensor:
-    n_steps, sigmas, step_size = cfg.n_steps, cfg.sigmas, cfg.step_size
+    n_steps, sigmas, base_step_size = cfg.n_steps, cfg.sigmas, cfg.step_size
     device = next(model.parameters()).device
     initial_x = torch.randn(cfg.n_samples, 1, 28, 28, device=device)
     current_x = initial_x
+    sigma_min = sigmas[-1]
     for sigma in tqdm(sigmas, desc="Running Annealed Langevin Sampling"):
+        step_size = base_step_size * (sigma / sigma_min) ** 2
         for i in range(n_steps):
             current_x = annealed_langevin_step(current_x, step_size, sigma, model)
     return current_x

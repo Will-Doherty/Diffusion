@@ -20,12 +20,13 @@ class TrainingConfigAnnealedMNIST:
 @dataclass
 class SetupConfigMNIST:
     weight_directory = Path("model_weights")
-    weight_path = weight_directory / "sliced_score_matching_MNIST_weights.pt"
+    # weight_path = weight_directory / "sliced_score_matching_MNIST_weights.pt"
+    weight_path = Path("diffusion/sliced_score_matching_MNIST_weights.pt")
     sample_directory = Path("model_samples")
 
 @dataclass
 class InferenceConfigMNIST:
     n_samples = 32
-    n_steps = 1_000
+    n_steps = 100
     step_size = 0.001
     sigmas = TrainingConfigAnnealedMNIST.sigmas

@@ -6,6 +6,5 @@ __pycache__/
 .mypy_cache/
 
 data/
-model_weights/
 outputs/
 model_samples/
