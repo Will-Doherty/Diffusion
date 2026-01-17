@@ -1,5 +1,7 @@
 import copy
 import random
+from pathlib import Path
+
 import torch
 import matplotlib
 matplotlib.use("TkAgg")
@@ -8,7 +10,7 @@ import argparse
 from diffusion.config import TrainingConfigAnnealedMNIST, InferenceConfigMNIST, SetupConfigMNIST
 from diffusion.models import UNet
 from diffusion.losses import calculate_annealed_sm_objective_mnist
-from diffusion.inference import run_annealed_langevin_sampling
+from diffusion.inference import run_annealed_langevin_sampling, save_mnist_samples_to_dir
 from diffusion.plotting import plot_mnist_sampling_result
 
 setup_cfg = SetupConfigMNIST()
@@ -84,5 +86,6 @@ if __name__ == "__main__":
         setup_cfg.weight_directory.mkdir(exist_ok=True)
         torch.save(model.state_dict(), setup_cfg.weight_path)
 
-#    inference_samples = run_annealed_langevin_sampling(inference_cfg, model)
-#    plot_mnist_sampling_result(inference_samples)
+    inference_samples = run_annealed_langevin_sampling(inference_cfg, model)
+    save_mnist_samples_to_dir(inference_samples, setup_cfg.sample_directory)
+    plot_mnist_sampling_result(inference_samples)
