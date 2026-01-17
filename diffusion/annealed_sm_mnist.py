@@ -1,16 +1,14 @@
 import copy
 import random
 from pathlib import Path
-
 import torch
-import matplotlib
-matplotlib.use("TkAgg")
 import argparse
 
 from diffusion.config import TrainingConfigAnnealedMNIST, InferenceConfigMNIST, SetupConfigMNIST
 from diffusion.models import UNet
 from diffusion.losses import calculate_annealed_sm_objective_mnist
 from diffusion.inference import run_annealed_langevin_sampling, save_mnist_samples_to_dir
+
 
 setup_cfg = SetupConfigMNIST()
 
@@ -63,6 +61,7 @@ def train_annealed_mnist_score_matching(cfg: TrainingConfigAnnealedMNIST):
     if best_state is not None:
         model.load_state_dict(best_state)
     return model
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--inference_only", action=argparse.BooleanOptionalAction)
